@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:docusign="http://www.mulesoft.org/schema/mule/docusign"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/docusign http://www.mulesoft.org/schema/mule/docusign/current/mule-docusign.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+<ee:object-store-caching-strategy name="DOCUSIGN_CACHE_TOKEN" doc:name="Caching Strategy" synchronized="false" >
+  <!-- Object Store defined for the caching strategy-->
+  <os:private-object-store entryTtl="${docusign.xjja.cache.ttl}" expirationInterval="${docusign.xjja.cache.interval}" />
+</ee:object-store-caching-strategy>
+
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ab2a1cd9-3a0e-4a65-a034-602262f3174d" >
+		<http:listener-connection host="0.0.0.0" port="8070" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="31c0c5f3-f50e-4c9c-8ddf-93e3c11713bc" file="app.yaml" />
+	<docusign:config name="DOCUSIGN_AUTH" doc:name="Docusign Connector Config" doc:id="6c325aad-5020-466d-a1c1-931227d4ea45" >
+		<docusign:authorization-connection baseUri="https://demo.docusign.net/restapi" authorization='#[vars.accessToken default ("")]' />
+	</docusign:config>
+	
+<!-- 	<docusign:config name="DOCUSIGN_CONNECT" doc:name="Docusign Connector Config" doc:id="4b4aa732-b7b5-4ca9-a6d3-49b07370588d" >
+		<docusign:authorization-connection baseUri="https://demo.docusign.net/restapi"/>
+	</docusign:config>
+ -->	<sub-flow name="get-cache-token" doc:id="5bc45abc-49f0-4e61-8c27-c2f500b01c81" >
+		<ee:cache doc:name="Cache" doc:id="926b5ba6-6a29-4da5-a0d2-02a8747130af" cachingStrategy-ref="DOCUSIGN_CACHE_TOKEN">
+			<ee:transform doc:name="Get Token" doc:id="cc47d757-b08b-40c3-af47-f1029624502c" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+"Bearer " ++ java!io::api360::docu::DocuSignTokenXjja::new(Mule::p("docusign.xjja.url"), 
+	Mule::p("docusign.xjja.cid"), 
+	Mule::p("docusign.xjja.cache.uid"),
+	Mule::p("rsa.private.key"),(Mule::p("docusign.xjja.cache.ttl") default 3600) as Number).accessToken]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</ee:cache>
+	</sub-flow>
+	<sub-flow name="get-token-no-cache" doc:id="d8f163ff-3268-4005-88d9-231feb6b5258" >
+		<ee:transform doc:name="Get Access Token for Authorization" doc:id="812ff93a-45b5-4f96-b514-957f2fdfbab1">
+			<ee:message>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="accessToken" ><![CDATA[%dw 2.0
+output application/java
+---
+"Bearer " ++ java!io::api360::docu::DocuSignTokenXjja::new(Mule::p("docusign.xjja.url"), 
+	Mule::p("docusign.xjja.cid"), 
+	Mule::p("docusign.xjja.cache.uid"),
+	Mule::p("rsa.private.key"),(Mule::p("docusign.xjja.cache.ttl") default 3600) as Number).accessToken]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+	<flow name="xjja-docusign-not-cached" doc:id="cf07fd55-01c8-4d29-807c-e0c6fb3aaddb" >
+		<http:listener doc:name="Listener" doc:id="c227fd48-d7eb-463e-8d4b-47e62c0931a6" config-ref="HTTP_Listener_config" path="/user-no-cache"/>
+		<flow-ref doc:name="get-token-no-cache" doc:id="13e347b0-5600-4aa1-92c1-87bbdc02099d" name="get-token-no-cache"/>
+		<docusign:get-v21-accounts-users-by-account-id-user-id doc:name="User Get User" doc:id="9beb7bab-dfae-4c29-ac0a-7e2696a64d42" config-ref="DOCUSIGN_AUTH" accountId="#[attributes.queryParams.accountId]" userId="#[attributes.queryParams.userId]"/>
+		<ee:transform doc:name="Docusign User" doc:id="13cc97fd-51b9-4fc9-bdb7-fd944634608e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="xjja-docusign-cached" doc:id="17ae7e5d-d6e0-4a9a-8a17-448fa1894289" >
+		<http:listener doc:name="Listener" doc:id="a99d0b8e-f67b-4c49-bf4e-9abea4d7d98e" config-ref="HTTP_Listener_config" path="/user-cache"/>
+		<flow-ref doc:name="get-cache-token" doc:id="48fd3b25-ea10-4f22-b6bc-00dc6ed0b4ec" name="get-cache-token" target="accessToken"/>
+		<docusign:get-v21-accounts-users-by-account-id-user-id doc:name="User Get User" doc:id="abe1541d-afae-4088-95cc-7fd81a30e0a8" config-ref="DOCUSIGN_AUTH" accountId="#[attributes.queryParams.accountId]" userId="#[attributes.queryParams.userId]"/>
+		<ee:transform doc:name="Docusign User" doc:id="3a57efe9-7950-4e8f-b591-de2749a2e717" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
