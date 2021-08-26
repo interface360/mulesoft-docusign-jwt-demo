@@ -16,7 +16,7 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ab2a1cd9-3a0e-4a65-a034-602262f3174d" >
 		<http:listener-connection host="0.0.0.0" port="8070" />
 	</http:listener-config>
-	<configuration-properties doc:name="Configuration properties" doc:id="31c0c5f3-f50e-4c9c-8ddf-93e3c11713bc" file="app.yaml" />
+	<configuration-properties doc:name="Configuration properties" doc:id="31c0c5f3-f50e-4c9c-8ddf-93e3c11713bc" file="properties/app.yaml" />
 	<docusign:config name="DOCUSIGN_AUTH" doc:name="Docusign Connector Config" doc:id="6c325aad-5020-466d-a1c1-931227d4ea45" >
 		<docusign:authorization-connection baseUri="https://demo.docusign.net/restapi" authorization='#[vars.accessToken default ("")]' />
 	</docusign:config>

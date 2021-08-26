@@ -1,0 +1,11 @@
+rsa:
+ private:
+  key: "<REPLACE_THIS_WITH_PRIVATE_KEY_AND_DO_NOT_INCLUDE_THE: -----BEGIN PRIVATE KEY----- and -----END PRIVATE KEY-----"
+  
+docusign:
+ xjja:
+  cid: "<REPLACE_THIS_WITH_CLIENT_ID_OR_INTEGRATION_KEY>"
+  uid: "<REPLACE_THIS_WITH_USER_ID>"
+  cache:
+   ttl: "3600"
+   interval: "5"  
