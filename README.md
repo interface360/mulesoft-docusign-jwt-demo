@@ -9,4 +9,5 @@ rsa:
 ```
 
 ### Import the Postman collection
+
  - Location `/src/test/resources/postman/FDIC.postman_collection.json`  
